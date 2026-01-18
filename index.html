@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SALUTE Report Generator</title>
+    <style>
+        /* --- APP STYLES (Interactive View) --- */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: #f2f2f7;
+            color: #1d1d1f;
+            min-height: 100vh;
+            padding: 1rem;
+        }
+        .container { max-width: 700px; margin: 0 auto; padding-bottom: 4rem; }
+        
+        header { text-align: center; padding: 2.5rem 1rem 1.5rem; }
+        h1 { font-size: 2.2rem; font-weight: 700; letter-spacing: -0.02em; color: #000; }
+        .subtitle { color: #6e6e73; font-size: 1.1rem; margin-top: 0.5rem; }
+
+        /* Steps */
+        .step {
+            background: white; border-radius: 18px; padding: 1.5rem; margin-bottom: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08); display: none;
+        }
+        .step.active { display: block; animation: fadeIn 0.3s ease; }
+        
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+        label { display: block; font-size: 1.05rem; font-weight: 600; margin-bottom: 0.6rem; color: #000; }
+        
+        textarea {
+            width: 100%; min-height: 110px; padding: 0.9rem;
+            border: 1px solid #d2d2d7; border-radius: 10px; font-size: 1rem; font-family: inherit;
+            resize: vertical; background: #fff; transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        textarea:focus { outline: none; border-color: #007aff; box-shadow: 0 0 0 3px rgba(0,122,255,0.15); }
+
+        .navigation { display: flex; justify-content: space-between; margin-top: 1.5rem; gap: 1rem; }
+
+        /* Buttons */
+        button {
+            background: #007aff; color: white; border: none; padding: 1.1rem 1.5rem;
+            font-size: 1.05rem; font-weight: 600; border-radius: 12px; cursor: pointer;
+            transition: all 0.2s; flex: 1;
+        }
+        button.secondary { background: #e5e5ea; color: #000; }
+        button:hover { background: #0066cc; }
+        button.secondary:hover { background: #d1d1d6; }
+        button:active { transform: scale(0.98); }
+
+        /* Progress Bar */
+        .progress { height: 6px; background: #e5e5ea; border-radius: 3px; overflow: hidden; margin: 1.5rem 0; }
+        .progress-fill { height: 100%; background: #007aff; width: 0%; transition: width 0.4s ease; }
+
+        /* Verification & Preview */
+        #verify, #preview {
+            background: white; border-radius: 18px; padding: 2rem 1.5rem;
+            margin-top: 2rem; display: none; box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        }
+        
+        h2 { font-size: 1.6rem; margin-bottom: 1.5rem; color: #000; border-bottom: 1px solid #e5e5ea; padding-bottom: 1rem; }
+        
+        .verify-item, .preview-item { margin-bottom: 1.5rem; }
+        .verify-item strong, .preview-item strong { display: block; font-size: 0.9rem; text-transform: uppercase; color: #6e6e73; margin-bottom: 0.4rem; letter-spacing: 0.5px; }
+        .preview-item p { color: #1d1d1f; line-height: 1.5; white-space: pre-wrap; font-size: 1.1rem; }
+
+        /* Final Actions */
+        .actions { display: flex; flex-wrap: wrap; gap: 1rem; margin-top: 2rem; }
+        
+        /* Copy Feedback */
+        #copyFeedback {
+            width: 100%; text-align: center; color: #34c759; font-weight: 600; 
+            margin-top: 10px; display: none; animation: popIn 0.3s ease;
+        }
+        @keyframes popIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+        /* Print Styling */
+        @media print {
+            body { background: white; padding: 0; }
+            .step, .progress, .actions, .navigation, header, #verify, button, #copyFeedback { display: none !important; }
+            #preview { display: block !important; box-shadow: none; padding: 0; margin: 0; }
+            .container { max-width: 100%; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>SALUTE Report</h1>
+        <div class="subtitle">Size • Activity • Location • Unit • Time • Equipment</div>
+    </header>
+
+    <div class="progress">
+        <div class="progress-fill" id="progressFill"></div>
+    </div>
+
+    <!-- STEP 1: SIZE -->
+    <div id="step1" class="step active">
+        <label>Size</label>
+        <textarea id="size" placeholder="How many people? How many vehicles?"></textarea>
+        <div class="navigation">
+            <button class="secondary" disabled>Back</button>
+            <button onclick="nextStep(2)">Next</button>
+        </div>
+    </div>
+
+    <!-- STEP 2: ACTIVITY -->
+    <div id="step2" class="step">
+        <label>Activity</label>
+        <textarea id="activity" placeholder="What are they doing? (Attacking, defending, moving, stationary)"></textarea>
+        <div class="navigation">
+            <button class="secondary" onclick="prevStep(1)">Back</button>
+            <button onclick="nextStep(3)">Next</button>
+        </div>
+    </div>
+
+    <!-- STEP 3: LOCATION -->
+    <div id="step3" class="step">
+        <label>Location</label>
+        <textarea id="location" placeholder="Grid coordinates, landmark reference, or description of where they are."></textarea>
+        <div class="navigation">
+            <button class="secondary" onclick="prevStep(2)">Back</button>
+            <button onclick="nextStep(4)">Next</button>
+        </div>
+    </div>
+
+    <!-- STEP 4: UNIT -->
+    <div id="step4" class="step">
+        <label>Unit / Uniform</label>
+        <textarea id="unit" placeholder="Describe patches, uniform type, vehicle markings, or distinctive insignia."></textarea>
+        <div class="navigation">
+            <button class="secondary" onclick="prevStep(3)">Back</button>
+            <button onclick="nextStep(5)">Next</button>
+        </div>
+    </div>
+
+    <!-- STEP 5: TIME -->
+    <div id="step5" class="step">
+        <label>Time</label>
+        <textarea id="time" placeholder="When was this observed?"></textarea>
+        <div class="navigation">
+            <button class="secondary" onclick="prevStep(4)">Back</button>
+            <button onclick="nextStep(6)">Next</button>
+        </div>
+    </div>
+
+    <!-- STEP 6: EQUIPMENT -->
+    <div id="step6" class="step">
+        <label>Equipment</label>
+        <textarea id="equipment" placeholder="Weapons, gear, sensors, communications equipment, etc."></textarea>
+        <div class="navigation">
+            <button class="secondary" onclick="prevStep(5)">Back</button>
+            <button onclick="showVerify()">Review Report</button>
+        </div>
+    </div>
+
+    <!-- VERIFY SCREEN -->
+    <div id="verify">
+        <h2>Verify Information</h2>
+        <div class="verify-item"><strong>Size</strong><textarea id="v-size"></textarea></div>
+        <div class="verify-item"><strong>Activity</strong><textarea id="v-activity"></textarea></div>
+        <div class="verify-item"><strong>Location</strong><textarea id="v-location"></textarea></div>
+        <div class="verify-item"><strong>Unit</strong><textarea id="v-unit"></textarea></div>
+        <div class="verify-item"><strong>Time</strong><textarea id="v-time"></textarea></div>
+        <div class="verify-item"><strong>Equipment</strong><textarea id="v-equipment"></textarea></div>
+        
+        <div class="navigation">
+            <button class="secondary" onclick="hideVerify()">Back to Edit</button>
+            <button onclick="generateFinal()">Confirm & Generate</button>
+        </div>
+    </div>
+
+    <!-- FINAL PREVIEW & EXPORT -->
+    <div id="preview">
+        <h2>Final SALUTE Report</h2>
+        <div class="preview-item"><strong>Size</strong><p id="p-size"></p></div>
+        <div class="preview-item"><strong>Activity</strong><p id="p-activity"></p></div>
+        <div class="preview-item"><strong>Location</strong><p id="p-location"></p></div>
+        <div class="preview-item"><strong>Unit</strong><p id="p-unit"></p></div>
+        <div class="preview-item"><strong>Time</strong><p id="p-time"></p></div>
+        <div class="preview-item"><strong>Equipment</strong><p id="p-equipment"></p></div>
+
+        <div class="actions">
+            <button id="exportBtn" onclick="downloadHtml()">Export as HTML</button>
+            <button id="copyBtn" onclick="copyToClipboard()">Copy to Clipboard</button>
+            <button class="secondary" onclick="window.print()">Print / Save PDF</button>
+        </div>
+        <div id="copyFeedback">✓ Copied to clipboard!</div>
+        
+        <br>
+        <button class="secondary" style="margin-top:20px" onclick="location.reload()">Start New Report</button>
+    </div>
+</div>
+
+<script>
+    const totalSteps = 6;
+    const fields = ['size', 'activity', 'location', 'unit', 'time', 'equipment'];
+
+    // Navigation Logic
+    function nextStep(step) {
+        document.querySelectorAll('.step').forEach(el => el.classList.remove('active'));
+        document.getElementById(`step${step}`).classList.add('active');
+        updateProgress(step);
+    }
+
+    function prevStep(step) {
+        document.querySelectorAll('.step').forEach(el => el.classList.remove('active'));
+        document.getElementById(`step${step}`).classList.add('active');
+        updateProgress(step);
+    }
+
+    function updateProgress(step) {
+        const percent = ((step - 1) / (totalSteps)) * 100;
+        document.getElementById('progressFill').style.width = `${percent}%`;
+    }
+
+    // Verify Screen Logic
+    function showVerify() {
+        document.querySelectorAll('.step').forEach(el => el.classList.remove('active'));
+        document.getElementById('verify').style.display = 'block';
+        document.getElementById('progressFill').style.width = '100%';
+
+        // Transfer values to verify textareas
+        fields.forEach(field => {
+            document.getElementById(`v-${field}`).value = document.getElementById(field).value;
+        });
+        window.scrollTo(0,0);
+    }
+
+    function hideVerify() {
+        document.getElementById('verify').style.display = 'none';
+        document.getElementById('step6').classList.add('active');
+        updateProgress(6);
+    }
+
+    // Generate Final Preview
+    function generateFinal() {
+        // Sync edits from verify back to main values
+        fields.forEach(field => {
+            const val = document.getElementById(`v-${field}`).value;
+            document.getElementById(field).value = val;
+            const displayVal = val.trim() === '' ? '—' : val;
+            document.getElementById(`p-${field}`).innerText = displayVal;
+        });
+
+        document.getElementById('verify').style.display = 'none';
+        document.getElementById('preview').style.display = 'block';
+        window.scrollTo(0,0);
+    }
+
+    // --- COPY TO CLIPBOARD ---
+    async function copyToClipboard() {
+        const data = fields.map(field => {
+            let val = document.getElementById(field).value.trim();
+            if(!val) val = "N/A";
+            const label = field.charAt(0).toUpperCase() + field.slice(1);
+            return `${label}: ${val}`;
+        }).join('\n\n');
+
+        const reportText = `*** SALUTE REPORT ***\n\n${data}\n\nGenerated: ${new Date().toLocaleString()}`;
+
+        try {
+            await navigator.clipboard.writeText(reportText);
+            const feedback = document.getElementById('copyFeedback');
+            feedback.style.display = 'block';
+            setTimeout(() => { feedback.style.display = 'none'; }, 3000);
+        } catch (err) {
+            alert("Could not copy automatically. Please copy manually.");
+        }
+    }
+
+    // --- EXPORT TO HTML (MINIMALIST) ---
+    function downloadHtml() {
+        // Escape helper to prevent HTML injection in the exported file
+        const escapeHtml = (text) => {
+            return text
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        // Gather Data
+        let itemsHtml = '';
+        fields.forEach(field => {
+            let val = document.getElementById(field).value.trim();
+            if(!val) val = "—";
+            const label = field.charAt(0).toUpperCase() + field.slice(1);
+            
+            // Create minimalist HTML structure for each item
+            itemsHtml += `
+                <div class="item">
+                    <div class="label">${label}</div>
+                    <div class="value">${escapeHtml(val)}</div>
+                </div>
+            `;
+        });
+
+        // Construct the new Document
+        const fileContent = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>SALUTE Report - ${new Date().toLocaleDateString()}</title>
+    <style>
+        body {
+            font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px;
+            color: #333;
+            line-height: 1.6;
+        }
+        header {
+            border-bottom: 2px solid #333;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        h1 { margin: 0; font-size: 24px; text-transform: uppercase; letter-spacing: 1px; }
+        .meta { color: #666; font-size: 14px; margin-top: 5px; }
+        
+        .item { margin-bottom: 25px; page-break-inside: avoid; }
+        .label { 
+            font-size: 12px; 
+            font-weight: bold; 
+            text-transform: uppercase; 
+            color: #777; 
+            margin-bottom: 5px;
+            letter-spacing: 0.5px;
+        }
+        .value { 
+            background: #f8f9fa; 
+            padding: 15px; 
+            border-left: 4px solid #007aff; 
+            border-radius: 4px;
+            white-space: pre-wrap; /* Preserves line breaks from textarea */
+            font-size: 16px;
+        }
+        @media print {
+            body { padding: 0; }
+            .value { border-left-width: 0; border-bottom: 1px solid #ddd; background: none; padding-left: 0; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>SALUTE Report</h1>
+        <div class="meta">Generated: ${new Date().toLocaleString()}</div>
+    </header>
+    
+    <div class="report-content">
+        ${itemsHtml}
+    </div>
+</body>
+</html>`;
+
+        const blob = new Blob([fileContent], {type: 'text/html'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `SALUTE_Report_${new Date().toISOString().slice(0,10)}.html`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+
+    // Initialize Time Field
+    document.addEventListener('DOMContentLoaded', () => {
+        document.getElementById('time').value = new Date().toLocaleString();
+    });
+</script>
+
+</body>
+</html>
